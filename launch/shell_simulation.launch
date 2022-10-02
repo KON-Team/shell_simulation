@@ -1,0 +1,19 @@
+<launch>
+    <!-- Sleep for a second before launching to ensure the environment is up -->
+    <node pkg="shell_simulation"
+          name="shell_simulation_node"
+          type="shell_simulation_node"
+          launch-prefix="bash -c 'sleep 1.0; $0 $@'"
+          />
+
+    <!-- Accelerate forward!  This will hit the first goal. 
+    <node name="accelerator"
+          pkg="rostopic"
+          type="rostopic"
+          args="pub /throttle_command std_msgs/Float64 '{data: 0.5}'"/>
+    -->
+      <!-- Controller node -->
+    <arg name="role_name" default="ego_vehicle"/>
+    <node pkg="shell_simulation" cwd="node" type="shell_control" name="shell_control_$(arg role_name)"/>
+    <param name="role_name" value="$(arg role_name)"/>  
+</launch>

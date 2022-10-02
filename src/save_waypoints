@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2017 Computer Vision Center (CVC) at the Universitat Autonoma de
+# Barcelona (UAB).
+# Copyright (c) 2019 Intel Corporation
+#
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT>.
+"""
+Welcome to CARLA ROS manual control.
+
+Use ARROWS or WASD keys for control.
+
+    W            : throttle
+    S            : brake
+    AD           : steer
+    Q            : toggle reverse
+    Space        : hand-brake
+    P            : toggle autopilot
+    M            : toggle manual transmission
+    ,/.          : gear up/down
+    B            : toggle manual control
+
+    F1           : toggle HUD
+    H/?          : toggle help
+    ESC          : quit
+"""
+
+from __future__ import print_function
+
+import datetime
+import math
+from threading import Thread
+
+import numpy
+from transforms3d.euler import quat2euler
+
+import ros_compatibility as roscomp
+from ros_compatibility.node import CompatibleNode
+from ros_compatibility.qos import QoSProfile, DurabilityPolicy
+
+from carla_msgs.msg import CarlaStatus
+from carla_msgs.msg import CarlaEgoVehicleInfo
+
+import ros_numpy
+
+
+
+
+from std_msgs.msg import Bool
+
+#Control msg
+from carla_msgs.msg import CarlaEgoVehicleControl
+
+#Sensors msgs
+from carla_msgs.msg import CarlaCollisionEvent
+from sensor_msgs.msg import Image
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import NavSatFix
+from sensor_msgs.msg import Imu
+from carla_msgs.msg import CarlaLaneInvasionEvent
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import CompressedImage
+from std_msgs.msg import Float32  #Speedometer
+from carla_msgs.msg import CarlaEgoVehicleStatus
+from sensor_msgs.msg import PointCloud2 #Lidar vlp16
+
+
+
+# ==============================================================================
+# -- World ---------------------------------------------------------------------
+# ==============================================================================
+
+
+
+class Listener(CompatibleNode):
+    """
+    defining the vehicle
+    """
+
+    def __init__(self):
+        super(Listener, self).__init__("Listener")
+        self._surface = None
+        self.role_name = self.get_param("role_name", "ego_vehicle")
+        self.odometry_subscriber = self.new_subscription(
+            Odometry, "/carla/{}/odometry".format(self.role_name),
+            self.on_odometry, qos_profile=10)
+            
+        #Vlp16_1 (Lidar)
+        self.lidar_subscriber = self.new_subscription(
+            PointCloud2, "/carla/{}/vlp16_1".format(self.role_name),
+            self.on_lidar, qos_profile=10)
+
+
+    def on_odometry(self, data):
+        """
+        Callback on collision event
+        """
+        x = data.pose.pose.position.x
+        y = data.pose.pose.position.y
+        v = (data.twist.twist.linear.x**2 + data.twist.twist.linear.y**2 )**(1/2)
+        with open("shell_waypoints.txt","a") as f:   #Tha default library is the catkin_ws
+            f.write("{}, {}, {}\n".format(x, y, v))
+    
+    def on_lidar(self,data):
+        pass
+        # xyz_array = ros_numpy.point_cloud2.get_xyz_points(data.data)
+        # print(xyz_array)
+        # with open("lidar.txt","w") as f:   #Tha default library is the catkin_ws
+        #     f.write("{}".format(xyz_array))
+
+
+
+# ==============================================================================
+# -- main() --------------------------------------------------------------------
+# ==============================================================================
+
+def main(args=None):
+    """
+    main function
+    """
+    roscomp.init("waypoints", args=args)
+    
+
+    try:
+
+        waypoints_node = Listener()
+
+        executor = roscomp.executors.MultiThreadedExecutor()
+        executor.add_node(waypoints_node)
+
+        spin_thread = Thread(target=waypoints_node.spin)
+        spin_thread.start()
+
+    except KeyboardInterrupt:
+        roscomp.loginfo("User requested shut down.")
+    finally:
+        roscomp.shutdown()
+        spin_thread.join()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model
+  href="http://download.ros.org/schema/package_format3.xsd"
+  schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>shell_simulation</name>
+  <version>0.0.0</version>
+  <description>The shell_simulation package</description>
+
+  <maintainer email="dbeer@swri.org">Dan Beer</maintainer>
+
+  <license>TODO</license>
+
+  <author email="dbeer@swri.org">Dan Beer</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+</package>
